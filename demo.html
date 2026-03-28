@@ -380,6 +380,10 @@
             checkReady();
         });
 
+        // --- CONFIGURATION ---
+        // Change this to your live Render URL when deployment finishes!
+        const API_BASE_URL = 'https://skinvise-api.onrender.com';
+
         analyzeBtn.addEventListener('click', async () => {
             document.getElementById('error-message').style.display = 'none';
             document.getElementById('results').style.display = 'none';
@@ -390,7 +394,7 @@
                 const formData = new FormData();
                 formData.append('image', selectedFile);
 
-                const res = await fetch('http://localhost:8000/v1/analyze-skin', {
+                const res = await fetch(`${API_BASE_URL}/v1/analyze-skin`, {
                     method: 'POST',
                     headers: { 'X-API-Key': apiKeyInput.value.trim() },
                     body: formData
