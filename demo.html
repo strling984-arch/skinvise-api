@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkinVise AI — Live Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --surface: #161b22;
+            --surface-hover: #21262d;
+            --primary: #f2c94c;
+            --primary-hover: #f2994a;
+            --text-main: #f0f6fc;
+            --text-muted: #8b949e;
+            --border: #30363d;
+            --danger: #f85149;
+            --success: #2ea043;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--primary), var(--primary-hover));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        /* ----- API Setup Section ----- */
+        .api-setup {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .api-setup label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .api-setup input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-color);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .api-setup input:focus {
+            border-color: var(--primary);
+        }
+
+        /* ----- Upload Section ----- */
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            background: var(--bg-color);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-hint {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        #file-input {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Preview Image */
+        #image-preview-container {
+            display: none;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        #image-preview {
+            max-width: 250px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        /* Button */
+        .btn {
+            background: linear-gradient(to right, var(--primary), var(--primary-hover));
+            color: #000;
+            border: none;
+            padding: 14px 32px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn:disabled {
+            background: var(--border);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--text-main);
+        }
+
+        /* Results Display */
+        #results {
+            display: none;
+            margin-top: 3rem;
+            border-top: 1px solid var(--border);
+            padding-top: 2rem;
+        }
+
+        .scores-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (min-width: 600px) {
+            .scores-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        .score-card {
+            background: var(--surface-hover);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .score-val {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .score-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .product-card {
+            background: var(--bg-color);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .step-badge {
+            background: var(--surface-hover);
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        #medical-alert {
+            display: none;
+            background: rgba(248, 81, 73, 0.1);
+            border-left: 4px solid var(--danger);
+            padding: 1rem;
+            margin-bottom: 2rem;
+            border-radius: 0 8px 8px 0;
+            color: var(--text-main);
+        }
+
+        .tag {
+            background: rgba(242, 201, 76, 0.1);
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>SkinVise AI</h1>
+        <p>B2B Engine Demo: Upload a face to get AI skin analysis and product recommendations</p>
+    </div>
+
+    <div class="container">
+        
+        <div class="api-setup">
+            <label>1. Your Store API Key (Generate this via Swagger UI <a href="http://localhost:8000/docs" target="_blank" style="color: var(--primary)">here</a>)</label>
+            <input type="text" id="api-key" placeholder="sv_your_api_key_here..." autocomplete="off">
+        </div>
+
+        <label style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">2. Upload Face Photo</label>
+        <div class="upload-area" id="drop-zone">
+            <input type="file" id="file-input" accept="image/jpeg, image/png, image/webp">
+            <div class="upload-icon">📸</div>
+            <div class="upload-text">Select Image</div>
+            <div class="upload-hint">JPG, PNG, WebP</div>
+        </div>
+
+        <div id="image-preview-container">
+            <img id="image-preview" src="">
+            <div>
+                <button id="change-photo-btn" class="btn-secondary">Change Photo</button>
+            </div>
+        </div>
+
+        <button id="analyze-btn" class="btn" disabled>Analyze Skin</button>
+
+        <div id="error-message" style="display: none; color: var(--danger); margin-top: 1rem; text-align: center;"></div>
+
+        <div id="results">
+            <h2 style="margin-bottom: 1.5rem;">AI Analysis Results</h2>
+            
+            <div id="medical-alert"></div>
+
+            <div class="scores-grid">
+                <div class="score-card">
+                    <div class="score-val" id="res-skin-type">--</div>
+                    <div class="score-label">Skin Type</div>
+                </div>
+                <div class="score-card">
+                    <div class="score-val" id="res-hydration">0</div>
+                    <div class="score-label">Hydration</div>
+                </div>
+                <div class="score-card">
+                    <div class="score-val" id="res-oiliness">0</div>
+                    <div class="score-label">Oiliness</div>
+                </div>
+                <div class="score-card">
+                    <div class="score-val" id="res-clarity">0</div>
+                    <div class="score-label">Clarity</div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <h3 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">CONCERN SEVERITY</h3>
+                <div id="res-concerns" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;"></div>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">Recommended Routine</h3>
+            <div id="res-products"></div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const apiKeyInput = document.getElementById('api-key');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const changePhotoBtn = document.getElementById('change-photo-btn');
+
+        let selectedFile = null;
+
+        // Auto-load key
+        if(localStorage.getItem('sv_key')) apiKeyInput.value = localStorage.getItem('sv_key');
+
+        apiKeyInput.addEventListener('input', (e) => {
+            localStorage.setItem('sv_key', e.target.value);
+            checkReady();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedFile = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('image-preview').src = e.target.result;
+                    document.getElementById('image-preview-container').style.display = 'block';
+                    document.getElementById('drop-zone').style.display = 'none';
+                };
+                reader.readAsDataURL(selectedFile);
+                checkReady();
+            }
+        });
+
+        function checkReady() {
+            analyzeBtn.disabled = !(selectedFile && apiKeyInput.value.trim().length > 0);
+        }
+
+        changePhotoBtn.addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            document.getElementById('image-preview-container').style.display = 'none';
+            document.getElementById('drop-zone').style.display = 'block';
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('results').style.display = 'none';
+            checkReady();
+        });
+
+        analyzeBtn.addEventListener('click', async () => {
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('results').style.display = 'none';
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = 'Analyzing...';
+
+            try {
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+
+                const res = await fetch('http://localhost:8000/v1/analyze-skin', {
+                    method: 'POST',
+                    headers: { 'X-API-Key': apiKeyInput.value.trim() },
+                    body: formData
+                });
+
+                const data = await res.json().catch(() => null);
+
+                if (!res.ok) throw new Error(data?.detail || 'Failed to connect to API');
+
+                // Render Results
+                document.getElementById('res-skin-type').textContent = data.analysis.skin_type;
+                document.getElementById('res-hydration').textContent = data.analysis.score.hydration;
+                document.getElementById('res-oiliness').textContent = data.analysis.score.oiliness;
+                document.getElementById('res-clarity').textContent = data.analysis.score.clarity;
+
+                if (data.flagged_medical) {
+                    document.getElementById('medical-alert').style.display = 'block';
+                    document.getElementById('medical-alert').textContent = data.medical_note;
+                }
+
+                const severitiesHtml = Object.entries(data.analysis.concern_severities || {}).map(([c, s]) => `
+                    <div style="background: var(--surface-hover); padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="text-transform: capitalize; font-weight: 500;">${c}</span>
+                            <span style="color: var(--primary); font-weight: bold;">${s}%</span>
+                        </div>
+                        <div style="width: 100%; height: 6px; background: var(--bg-color); border-radius: 3px; overflow: hidden;">
+                            <div style="width: ${s}%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-hover)); border-radius: 3px;"></div>
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('res-concerns').innerHTML = severitiesHtml || '<p style="color: var(--text-muted)">No specific concerns detected.</p>';
+                
+                document.getElementById('res-products').innerHTML = data.recommendations.map(r => `
+                    <div class="product-card" style="flex-direction: column;">
+                        <div style="display: flex; align-items: flex-start; gap: 1rem; width: 100%;">
+                            <div class="step-badge">${r.step}</div>
+                            <div>
+                                <h4 style="margin-bottom: 4px; color: var(--primary);">${r.product_name} <span style="font-size: 0.75em; color: var(--text-muted); font-weight: normal;">(Top Match)</span></h4>
+                                <p style="color: var(--text-muted); font-size: 0.9rem">${r.reason}</p>
+                            </div>
+                        </div>
+                        ${r.alternatives && r.alternatives.length > 0 ? `
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border); width: 100%;">
+                            <h5 style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 1px;">Alternatives</h5>
+                            ${r.alternatives.map(alt => `
+                                <div style="display: flex; align-items: flex-start; margin-bottom: 12px;">
+                                    <span style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-right: 12px; margin-top: 2px;">ALT</span>
+                                    <div>
+                                        <div style="font-weight: 500; font-size: 0.95rem;">${alt.product_name}</div>
+                                        <div style="color: var(--text-muted); font-size: 0.85rem;">${alt.reason}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+
+                document.getElementById('results').style.display = 'block';
+
+            } catch (err) {
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-message').textContent = err.message;
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = 'Analyze Skin';
+            }
+        });
+    </script>
+</body>
+</html>

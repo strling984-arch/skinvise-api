@@ -1,0 +1,18 @@
+services:
+  # The FastAPI Backend
+  - type: web
+    name: skinvise-api
+    env: python
+    region: frankfurt # Can be changed to oregon, ohio, singapore
+    plan: starter # $7/month for 24/7 uptime (or free for testing)
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: SUPABASE_URL
+        value: "add_your_supabase_url_here_later"
+      - key: SUPABASE_KEY
+        value: "add_your_supabase_key_here_later"
+      - key: MAX_IMAGE_SIZE_MB
+        value: "5"
+      - key: PYTHON_VERSION
+        value: "3.10.11"
