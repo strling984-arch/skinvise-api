@@ -81,7 +81,7 @@
             color: var(--text-muted);
         }
 
-        .api-setup input {
+        .api-setup input, .api-setup select {
             width: 100%;
             padding: 12px 16px;
             background: var(--bg-color);
@@ -93,7 +93,7 @@
             transition: border-color 0.2s;
         }
 
-        .api-setup input:focus {
+        .api-setup input:focus, .api-setup select:focus {
             border-color: var(--primary);
         }
 
@@ -273,7 +273,7 @@
 
     <div class="header">
         <h1>SkinVise AI</h1>
-        <p>B2B Engine Demo: Upload a face to get AI skin analysis and product recommendations</p>
+        <p>B2B Engine Demo: Upload a face/body photo for AI analysis & routines</p>
     </div>
 
     <div class="container">
@@ -283,7 +283,16 @@
             <input type="text" id="api-key" placeholder="sv_your_api_key_here..." autocomplete="off">
         </div>
 
-        <label style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">2. Upload Face Photo</label>
+        <div class="api-setup" style="border-bottom: none; padding-bottom: 0;">
+            <label>2. Select Analysis Target</label>
+            <select id="analysis-target">
+                <option value="skin">Face / Skin Routine</option>
+                <option value="hair">Hair Routine</option>
+                <option value="body">Body Routine</option>
+            </select>
+        </div>
+
+        <label style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; display: block; margin-top: 2rem;">3. Upload Photo</label>
         <div class="upload-area" id="drop-zone">
             <input type="file" id="file-input" accept="image/jpeg, image/png, image/webp">
             <div class="upload-icon">📸</div>
@@ -298,7 +307,7 @@
             </div>
         </div>
 
-        <button id="analyze-btn" class="btn" disabled>Analyze Skin</button>
+        <button id="analyze-btn" class="btn" disabled>Analyze Target</button>
 
         <div id="error-message" style="display: none; color: var(--danger); margin-top: 1rem; text-align: center;"></div>
 
@@ -307,23 +316,8 @@
             
             <div id="medical-alert"></div>
 
-            <div class="scores-grid">
-                <div class="score-card">
-                    <div class="score-val" id="res-skin-type">--</div>
-                    <div class="score-label">Skin Type</div>
-                </div>
-                <div class="score-card">
-                    <div class="score-val" id="res-hydration">0</div>
-                    <div class="score-label">Hydration</div>
-                </div>
-                <div class="score-card">
-                    <div class="score-val" id="res-oiliness">0</div>
-                    <div class="score-label">Oiliness</div>
-                </div>
-                <div class="score-card">
-                    <div class="score-val" id="res-clarity">0</div>
-                    <div class="score-label">Clarity</div>
-                </div>
+            <div class="scores-grid" id="scores-container">
+                <!-- Dynamically populated -->
             </div>
 
             <div style="margin-bottom: 2rem;">
@@ -339,6 +333,7 @@
     <script>
         const fileInput = document.getElementById('file-input');
         const apiKeyInput = document.getElementById('api-key');
+        const targetSelect = document.getElementById('analysis-target');
         const analyzeBtn = document.getElementById('analyze-btn');
         const changePhotoBtn = document.getElementById('change-photo-btn');
 
@@ -381,8 +376,7 @@
         });
 
         // --- CONFIGURATION ---
-        // Change this to your live Render URL when deployment finishes!
-        const API_BASE_URL = 'https://skinvise-api.onrender.com';
+        const API_BASE_URL = 'http://localhost:8000';
 
         analyzeBtn.addEventListener('click', async () => {
             document.getElementById('error-message').style.display = 'none';
@@ -391,10 +385,17 @@
             analyzeBtn.textContent = 'Analyzing...';
 
             try {
+                const targetId = targetSelect.value;
+                const endpointMap = {
+                    'skin': 'analyze-skin',
+                    'hair': 'analyze-hair',
+                    'body': 'analyze-body'
+                };
+
                 const formData = new FormData();
                 formData.append('image', selectedFile);
 
-                const res = await fetch(`${API_BASE_URL}/v1/analyze-skin`, {
+                const res = await fetch(`${API_BASE_URL}/v1/${endpointMap[targetId]}`, {
                     method: 'POST',
                     headers: { 'X-API-Key': apiKeyInput.value.trim() },
                     body: formData
@@ -404,15 +405,43 @@
 
                 if (!res.ok) throw new Error(data?.detail || 'Failed to connect to API');
 
-                // Render Results
-                document.getElementById('res-skin-type').textContent = data.analysis.skin_type;
-                document.getElementById('res-hydration').textContent = data.analysis.score.hydration;
-                document.getElementById('res-oiliness').textContent = data.analysis.score.oiliness;
-                document.getElementById('res-clarity').textContent = data.analysis.score.clarity;
+                // Render Results based on the endpoint type
+                const typeLabel = targetId === 'hair' ? 'Hair Type' : 'Skin Type';
+                const typeVal = targetId === 'hair' ? data.analysis.hair_type : data.analysis.skin_type;
+                
+                let scoreKeys, scoreNames;
+                if (targetId === 'hair') {
+                    scoreKeys = ['frizz', 'dullness', 'flatness'];
+                    scoreNames = ['Frizz', 'Dullness', 'Flatness'];
+                } else {
+                    scoreKeys = ['hydration', 'oiliness', 'clarity'];
+                    scoreNames = ['Hydration', 'Oiliness', 'Clarity'];
+                }
+
+                document.getElementById('scores-container').innerHTML = `
+                    <div class="score-card">
+                        <div class="score-val">${typeVal || '--'}</div>
+                        <div class="score-label">${typeLabel}</div>
+                    </div>
+                    <div class="score-card">
+                        <div class="score-val">${data.analysis.score[scoreKeys[0]]}</div>
+                        <div class="score-label">${scoreNames[0]}</div>
+                    </div>
+                    <div class="score-card">
+                        <div class="score-val">${data.analysis.score[scoreKeys[1]]}</div>
+                        <div class="score-label">${scoreNames[1]}</div>
+                    </div>
+                    <div class="score-card">
+                        <div class="score-val">${data.analysis.score[scoreKeys[2]]}</div>
+                        <div class="score-label">${scoreNames[2]}</div>
+                    </div>
+                `;
 
                 if (data.flagged_medical) {
                     document.getElementById('medical-alert').style.display = 'block';
-                    document.getElementById('medical-alert').textContent = data.medical_note;
+                    document.getElementById('medical-alert').textContent = data.medical_note || "Flagged for medical review.";
+                } else {
+                    document.getElementById('medical-alert').style.display = 'none';
                 }
 
                 const severitiesHtml = Object.entries(data.analysis.concern_severities || {}).map(([c, s]) => `
@@ -454,6 +483,10 @@
                     </div>
                 `).join('');
 
+                if (data.recommendations.length === 0) {
+                     document.getElementById('res-products').innerHTML = `<p style="color: var(--text-muted)">No products mapped to this category yet. Add products via the API!</p>`;
+                }
+
                 document.getElementById('results').style.display = 'block';
 
             } catch (err) {
@@ -461,7 +494,7 @@
                 document.getElementById('error-message').textContent = err.message;
             } finally {
                 analyzeBtn.disabled = false;
-                analyzeBtn.textContent = 'Analyze Skin';
+                analyzeBtn.textContent = 'Analyze Target';
             }
         });
     </script>

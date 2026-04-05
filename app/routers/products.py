@@ -13,9 +13,19 @@ from app.schemas.schemas import ProductCreate, ProductResponse, ProductImportRes
 
 router = APIRouter(prefix="/v1/products", tags=["Products"])
 
-VALID_CATEGORIES = {"cleanser", "moisturizer", "serum", "sunscreen", "treatment", "toner", "mask"}
+VALID_CATEGORIES = {
+    # Skin
+    "cleanser", "moisturizer", "serum", "sunscreen", "treatment", "toner", "mask",
+    # Hair
+    "shampoo", "conditioner", "hair_mask", "hair_oil", "scalp_treatment", "styling",
+    # Body
+    "body_wash", "body_scrub", "body_lotion", "body_oil", "deodorant"
+}
 VALID_SKIN_TYPES = {"oily", "dry", "combination", "normal", "sensitive", "all"}
-VALID_CONCERNS = {"acne", "pores", "oiliness", "dryness", "pigmentation", "redness", "wrinkles"}
+VALID_CONCERNS = {
+    "acne", "pores", "oiliness", "dryness", "pigmentation", "redness", "wrinkles",
+    "frizz", "dullness", "flatness", "damage", "keratosis"
+}
 
 
 def _validate_product_data(data: ProductCreate) -> list[str]:

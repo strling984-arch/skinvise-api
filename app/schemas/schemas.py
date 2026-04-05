@@ -46,6 +46,38 @@ class SkinAnalysisResponse(BaseModel):
     medical_note: Optional[str] = Field(None, description="Medical warning message if flagged")
 
 
+# ─── Hair Analysis ───────────────────────────────────────────────
+
+class HairScores(BaseModel):
+    """Hair analysis scores (0-100)."""
+    frizz: int = Field(..., ge=0, le=100, description="Frizz level (0=smooth, 100=frizzy)")
+    dullness: int = Field(..., ge=0, le=100, description="Dullness level (0=shiny, 100=dull)")
+    flatness: int = Field(..., ge=0, le=100, description="Flatness level (0=voluminous, 100=flat)")
+
+class HairAnalysisResult(BaseModel):
+    """Full hair analysis result."""
+    hair_type: str = Field(..., description="Detected hair type")
+    score: HairScores
+    concerns: list[str] = Field(default_factory=list)
+    concern_severities: dict[str, int] = Field(default_factory=dict)
+
+class HairAnalysisResponse(BaseModel):
+    """Top-level API response for hair analysis."""
+    analysis: HairAnalysisResult
+    recommendations: list[ProductRecommendation] = Field(default_factory=list)
+    flagged_medical: bool = Field(False)
+    medical_note: Optional[str] = Field(None)
+
+# ─── Body Analysis ───────────────────────────────────────────────
+
+class BodyAnalysisResponse(BaseModel):
+    """Top-level API response for body analysis."""
+    analysis: SkinAnalysisResult
+    recommendations: list[ProductRecommendation] = Field(default_factory=list)
+    flagged_medical: bool = Field(False)
+    medical_note: Optional[str] = Field(None)
+
+
 # ─── Tenant / Store ──────────────────────────────────────────────
 
 class TenantCreate(BaseModel):
@@ -93,7 +125,14 @@ class ProductCreate(BaseModel):
     category: str = Field(
         ...,
         description="Product category",
-        examples=["cleanser", "moisturizer", "serum", "sunscreen", "treatment", "toner", "mask"],
+        examples=[
+            # Skin
+            "cleanser", "moisturizer", "serum", "sunscreen", "treatment", "toner", "mask",
+            # Hair
+            "shampoo", "conditioner", "hair_mask", "hair_oil", "scalp_treatment", "styling",
+            # Body
+            "body_wash", "body_scrub", "body_lotion", "body_oil", "deodorant"
+        ],
     )
     skin_types: list[str] = Field(
         default_factory=list,
