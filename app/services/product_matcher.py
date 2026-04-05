@@ -1,9 +1,9 @@
 """Product matching service — maps skin/hair analysis to product recommendations."""
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.db_models import Product
+from app.models.db_models import Product, ProductFeedback
 
 # Skincare routine step order and what categories map to each step
 SKIN_STEP_CATEGORY_MAP = {
@@ -94,9 +94,30 @@ async def match_products(
     if not products:
         return []
 
+    feedback_result = await db.execute(
+        select(
+            ProductFeedback.product_id,
+            func.avg(ProductFeedback.rating).label("avg_rating"),
+            func.count(ProductFeedback.id).label("count")
+        )
+        .where(ProductFeedback.tenant_id == tenant_id)
+        .group_by(ProductFeedback.product_id)
+    )
+    product_ratings = {
+        row.product_id: {"avg": row.avg_rating, "count": row.count} 
+        for row in feedback_result.all()
+    }
+
     scored_products = []
     for product in products:
         score = _calculate_match_score(product, analysis)
+        
+        # Apply Machine Learning / Collaborative Feedback weight
+        stats = product_ratings.get(product.id)
+        if stats and stats["count"] >= 3:
+            # Boost score mathematically based on review success (up to +15 pts)
+            score += ((stats["avg"] - 3.0) * 7.5)
+
         scored_products.append((product, score))
 
     scored_products.sort(key=lambda x: x[1], reverse=True)

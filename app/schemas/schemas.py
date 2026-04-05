@@ -77,6 +77,16 @@ class BodyAnalysisResponse(BaseModel):
     flagged_medical: bool = Field(False)
     medical_note: Optional[str] = Field(None)
 
+# ─── Feedback Loop ───────────────────────────────────────────────
+
+class FeedbackCreate(BaseModel):
+    analysis_id: str = Field(..., description="The ID of the analysis this feedback relates to.")
+    product_id: str = Field(..., description="The ID of the product the user is rating.")
+    rating: float = Field(..., ge=1.0, le=5.0, description="Customer rating from 1.0 to 5.0 stars.")
+
+class FeedbackResponse(BaseModel):
+    status: str = Field("success")
+    message: str = Field("Feedback saved, AI recommendation weights have adjusted.")
 
 # ─── Tenant / Store ──────────────────────────────────────────────
 

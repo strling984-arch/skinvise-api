@@ -12,7 +12,9 @@ from app.services.skin_analyzer import analyze_skin
 from app.services.hair_analyzer import analyze_hair
 from app.services.body_analyzer import analyze_body
 from app.services.product_matcher import match_products
-from app.schemas.schemas import HairAnalysisResponse, HairAnalysisResult, HairScores, BodyAnalysisResponse
+from app.schemas.schemas import HairAnalysisResponse, HairAnalysisResult, HairScores, BodyAnalysisResponse, FeedbackCreate, FeedbackResponse
+from app.models.db_models import ProductFeedback
+from sqlalchemy.future import select
 import cv2
 import numpy as np
 from app.config import get_settings
@@ -197,3 +199,32 @@ async def analyze_body_endpoint(
     db.add(history_entry)
     await db.flush()
     return response
+
+@router.post("/feedback", response_model=FeedbackResponse)
+async def submit_feedback(
+    feedback: FeedbackCreate,
+    tenant: Tenant = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db)
+):
+    """Allows customers to rate their generated routine."""
+    # Verify the analysis actually exists and belongs to this tenant
+    analysis = await db.execute(
+        select(AnalysisHistory).where(
+            AnalysisHistory.id == feedback.analysis_id,
+            AnalysisHistory.tenant_id == tenant.id
+        )
+    )
+    if not analysis.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Analysis not found.")
+        
+    # Append the rating to train the system
+    new_feedback = ProductFeedback(
+        tenant_id=tenant.id,
+        analysis_id=feedback.analysis_id,
+        product_id=feedback.product_id,
+        rating=feedback.rating
+    )
+    db.add(new_feedback)
+    await db.flush()
+    
+    return FeedbackResponse()

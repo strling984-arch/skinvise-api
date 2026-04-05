@@ -104,3 +104,28 @@ class AnalysisHistory(Base):
 
     def __repr__(self):
         return f"<AnalysisHistory(id={self.id}, skin_type={self.skin_type})>"
+
+class ProductFeedback(Base):
+    """Customer ratings to train the AI recommendation engine."""
+
+    __tablename__ = "product_feedback"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id = Column(String(36), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    analysis_id = Column(String(36), ForeignKey("analysis_history.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(String(36), ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    rating = Column(Float, nullable=False)  # e.g., 1.0 to 5.0
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    # Relationships
+    tenant = relationship("Tenant", foreign_keys=[tenant_id])
+    product = relationship("Product", foreign_keys=[product_id])
+    analysis = relationship("AnalysisHistory", foreign_keys=[analysis_id])
+
+    # Indexes
+    __table_args__ = (
+        Index("ix_product_feedback_tenant_product", "tenant_id", "product_id"),
+    )
+    
+    def __repr__(self):
+        return f"<ProductFeedback(id={self.id}, product_id={self.product_id}, rating={self.rating})>"
